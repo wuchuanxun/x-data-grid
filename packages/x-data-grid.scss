@@ -1,0 +1,125 @@
+table {
+  /*合并边框模型*/
+  border-collapse: separate;
+  border-spacing: 0;
+  /*在空单元格周围绘制边框*/
+  empty-cells: show;
+  table-layout:fixed;
+
+  th {
+    position:sticky;
+    top: 0;
+    background-color: #F8F8F9;
+    border-right: 1px solid #D8DADC;
+  }
+
+  th:last-child{
+    border-right:none;
+  }
+
+  td{
+    background-color: white;
+  }
+
+  th,td{
+    padding: 0 2px;
+    border-right: 1px solid #D8DADC;
+    border-bottom: 1px solid #D8DADC;
+  }
+
+  tr.zebra-pattern>td{
+    background-color:#F3F6FA;
+  }
+
+  tr.active>td{
+    background-color: #BAD5FF;
+  }
+}
+
+.x-data-grid {
+  text-align: left;
+  border: 1px solid #D8DADC;
+
+  // 滚动条样式
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    box-shadow: none;
+    background: hsl(255, 12%, 81%);
+  }
+
+  ::-webkit-scrollbar-track {
+    box-shadow: none;
+    border-radius: 10px;
+    background: #F8F8F8;
+  }
+
+  .x-nav-bt{
+    margin: 0 5px;
+    border: none;
+
+    &:focus{
+      outline: none;
+    }
+  }
+
+  .x-table-title {
+    background: #F8F8F9;
+    padding: 5px 10px;
+    border-bottom: 1px solid #D8DADC;
+
+    select{
+      background: white;
+      font-size: 16px;
+      text-align: center;
+      border: none;
+      outline: none;
+      height: 24px; 
+      line-height: 24px;
+      background: #F8F8F9;
+    }
+
+    option{
+      color: black;
+      line-height: 20px;
+    }
+
+    option:hover{
+      background: #EBCCD1;
+    }
+
+    input{
+      outline-style: none ;
+      border: 1px solid #ccc; 
+      border-radius: 3px;
+      font-size: 16px;
+    }
+  }
+
+  [tooltip]:before {            
+    position : absolute;
+    content : attr(tooltip);
+    white-space: pre-line;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    margin-left: 15px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    color: #444;
+    background: white;
+  }
+
+  [tooltip]:hover {        
+    &:before {
+      opacity: 1;
+    }
+  }
+}
