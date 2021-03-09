@@ -9,6 +9,7 @@ module.exports = {
     }
   },
   outputDir: 'docs',
+  publicPath: '/x-data-grid/',
   chainWebpack: config => {
     config.module
       .rule('js')
