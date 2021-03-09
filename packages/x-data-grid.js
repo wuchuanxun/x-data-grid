@@ -234,6 +234,7 @@ export default {
             },
             on: {
               'mousedown': function (e) {
+                e.stopPropagation()
                 that.pageX = e.pageX
                 const curCol = e.target.parentElement
                 const nxtCol = curCol.nextElementSibling
@@ -246,6 +247,9 @@ export default {
                 if (nxtCol) {
                   that.nextColWidth = nxtCol.offsetWidth
                 }
+              },
+              'click': function (e) {
+                e.stopPropagation()
               }
             }
           })
