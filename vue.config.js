@@ -8,6 +8,7 @@ module.exports = {
       filename: 'index.html'
     }
   },
+  outputDir: 'docs',
   chainWebpack: config => {
     config.module
       .rule('js')
