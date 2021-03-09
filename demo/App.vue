@@ -95,12 +95,10 @@ export default {
         id: index * 3 + 2
       }])
     }
-    console.log('数据准备完毕，开始渲染')
     this.data = dataCache
   },
   methods: {
     showId (checkedKeys) {
-      console.log(checkedKeys)
     }
   }
 }
