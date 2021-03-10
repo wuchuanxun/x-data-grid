@@ -74,13 +74,14 @@ export default {
 
       sortFn: defaultSortFn,
       sortType: 'normal',
-      sortKey: null
+      sortKey: null,
+      searchSchema: ''
     }
   },
 
   computed: {
     fuse () {
-      return new Fuse(this.source, this.options)
+      return new Fuse(this.sourceLocal, this.options)
     }
   },
 
@@ -382,8 +383,9 @@ export default {
               },
               'keyup': function (e) {
                 if (e.key === 'Enter' || e.keyCode === 13) {
-                  that.source[that.editCell[0]][that.editCell[1]] = e.target.value
+                  that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
                   that.$set(that, 'editCell', [-1, -1])
+                  that.$emit('editCell', row)
                 }
               }
             }
@@ -504,7 +506,7 @@ export default {
           float: 'right'
         }
       }, navigation)
-      const infoDom = createElement('span', `共有数据${this.source.length}条, 筛选结果${this.filterSource.length}条`)
+      const infoDom = createElement('span', `共有数据${this.sourceLocal.length}条, 筛选结果${this.filterSource.length}条`)
 
       footer = createElement('div', {
         style: {
@@ -540,14 +542,19 @@ export default {
       ...searchOptions
     ]))
     search.push(createElement('input', {
+      domProps: {
+        value: that.searchSchema
+      },
       on: {
         'input': debounce(function (e) {
           if (that.options.keys.includes('.')) {
             that.options.keys = keys
           }
           const text = e.target.value.trim()
+
+          that.searchSchema = text
           if (text.length === 0) {
-            that.filterSource = that.source
+            that.filterSource = that.sourceLocal
           } else {
             that.filterSource = that.fuse.search(text).map(p => p.item)
           }
@@ -560,8 +567,9 @@ export default {
               that.options.keys = keys
             }
             const text = e.target.value.trim()
+            that.searchSchema = text
             if (text.length === 0) {
-              that.filterSource = that.source
+              that.filterSource = that.sourceLocal
             } else {
               that.filterSource = that.fuse.search(text).map(p => p.item)
             }
@@ -627,7 +635,28 @@ export default {
     ])
   },
 
-  mounted () {
+  watch: {
+    source () {
+      this.sourceLocal = this.source.map(function (row, index) {
+        // 新建字段，标识当前行在数组中的索引
+        row._index = index
+        return row
+      })
+
+      this.filterSource = this.sourceLocal
+      this.searchSchema = ''
+      // 重新排序
+      if (this.sortType !== 'normal') {
+        const dir = this.sortType === 'asc' ? 1 : -1
+        const that = this
+        this.filterSource.sort((a, b) => {
+          return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+        })
+      }
+    }
+  },
+
+  created () {
     this.columns.map(function (col, index) {
       // 新建字段，标识当前列排序类型；默认为“不排序”
       col._sortType = 'normal'
@@ -640,13 +669,13 @@ export default {
       return col
     })
 
-    this.source.map(function (row, index) {
+    this.sourceLocal = this.source.map(function (row, index) {
       // 新建字段，标识当前行在数组中的索引
       row._index = index
       return row
     })
 
-    this.filterSource = this.source
+    this.filterSource = this.sourceLocal
 
     // 缩放列
     const that = this
