@@ -1,6 +1,6 @@
 {
   "name": "x-data-grid",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Vue表格组件,支持搜索、排序、分页、固定列、调整列宽",
   "main": "lib/xDataGrid.umd.js",
   "author": "xunger",
@@ -14,6 +14,10 @@
     "search",
     "grid"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wuchuanxun/x-data-grid.git"
+  },
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
@@ -25,9 +29,7 @@
     "debounce": "^1.2.0",
     "fuse.js": "^6.4.6",
     "numeral": "^2.0.6",
-    "vue": "^2.6.11",
-    "vue-draggable-resizable": "^2.3.0",
-    "vue-resizable": "^1.2.5"
+    "vue": "^2.6.11"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

@@ -14,9 +14,11 @@
       </template>
       <template
         slot="operation"
-        slot-scope="text"
+        slot-scope="text,record"
       >
-        <button>{{ text }}</button>
+        <button @click="deleteRow(record)">
+          删除
+        </button>
       </template>
     </x-data-grid>
   </div>
@@ -55,16 +57,15 @@ export default {
           align: 'center'
         },
         {
-          title: '复制',
-          adjustable: true,
-          key: 'num',
-          width: 800
-        },
-        {
           title: '单价',
           adjustable: true,
           key: 'unitPrice',
-          width: 300,
+          width: 800
+        },
+        {
+          title: '操作',
+          key: 'none',
+          width: 100,
           scopedSlots: 'operation',
           fixed: 'right'
         }
@@ -100,6 +101,10 @@ export default {
   },
   methods: {
     showId (checkedKeys) {
+
+    },
+    deleteRow (row) {
+
     }
   }
 }
