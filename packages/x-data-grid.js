@@ -316,13 +316,15 @@ export default {
           tdContent = [
             createElement('input', {
               attrs: {
-                type: 'checkbox',
+                type: 'checkbox'
+              },
+              domProps: {
                 checked: row._checked
               },
               on: {
                 change (e) {
                   const status = e.target.checked
-                  row._checked = status
+                  that.$set(row, '_checked', status)
                   const rKeys = []
                   for (const rr of renderData) {
                     if (rr._checked) {
@@ -436,16 +438,19 @@ export default {
       navigation.push(createElement('input', {
         class: 'x-page-number',
         attrs: {
-          value: that.pageIndex + 1,
           type: 'number',
           min: 1,
           max: pages
+        },
+        domProps: {
+          value: that.pageIndex + 1
         },
         style: {
           width: (Math.floor(Math.log10(pages)) * 8 + 25) + 'px',
           outlineStyle: 'none',
           border: '1px solid #ccc',
-          fontSize: '16px'
+          fontSize: '15px',
+          height: '20px'
         },
         on: {
           change: function (e) {
@@ -505,8 +510,9 @@ export default {
         style: {
           textAlign: 'left',
           background: '#F8F8F9',
-          padding: '5px 10px',
-          fontSize: '14px'
+          padding: '10px 10px',
+          fontSize: '14px',
+          borderTop: '1px solid #D8DADC'
         }
       }, [infoDom, navigationDom])
     }
