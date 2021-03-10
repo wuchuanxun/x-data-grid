@@ -395,6 +395,11 @@ export default {
             },
             on: {
               'dblclick': function (e) {
+                if (cell.type === '_check' || cell.scopedSlots) {
+                  // 不允许编辑
+                  return false
+                }
+
                 that.editCell = [row._index, cell.key]
                 setTimeout(() => {
                   that.$refs.editCell.focus()
@@ -429,6 +434,7 @@ export default {
         }
       }, '跳转到'))
       navigation.push(createElement('input', {
+        class: 'x-page-number',
         attrs: {
           value: that.pageIndex + 1,
           type: 'number',
@@ -436,7 +442,10 @@ export default {
           max: pages
         },
         style: {
-          width: (Math.floor(Math.log10(pages)) * 8 + 25) + 'px'
+          width: (Math.floor(Math.log10(pages)) * 8 + 25) + 'px',
+          outlineStyle: 'none',
+          border: '1px solid #ccc',
+          fontSize: '16px'
         },
         on: {
           change: function (e) {
