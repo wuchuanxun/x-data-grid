@@ -74,8 +74,7 @@ export default {
 
       sortFn: defaultSortFn,
       sortType: 'normal',
-      sortKey: null,
-      needSort: false
+      sortKey: null
     }
   },
 
@@ -154,6 +153,8 @@ export default {
           titleContent[0] += '↑'
         } else if (col._sortType === 'desc') {
           titleContent[0] += '↓'
+        } else {
+          titleContent[0] += '↑↓'
         }
       }
 
@@ -169,7 +170,6 @@ export default {
           }
           that.sortFn = col.sortFn || defaultSortFn
           that.sortKey = col.key
-          that.needSort = true
 
           that.columns.forEach((p, idx) => {
             if (idx === index) {
@@ -178,7 +178,18 @@ export default {
               p._sortType = 'normal'
             }
           })
+
           // 强制刷新
+          if (that.sortType !== 'normal') {
+            const dir = that.sortType === 'asc' ? 1 : -1
+            that.filterSource.sort((a, b) => {
+              return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+            })
+          } else {
+            that.filterSource.sort((a, b) => {
+              return defaultSortFn(a._index, b._index)
+            })
+          }
           that.columns.push()
         }
       }
@@ -189,6 +200,7 @@ export default {
             userSelect: 'none',
             position: 'sticky',
             left: fixL + 'px',
+            textAlign: col.align || 'left',
             zIndex: 10
           },
           on: event
@@ -202,6 +214,7 @@ export default {
             position: 'sticky',
             right: fixR + 'px',
             borderLeft: '1px solid #D8DADC',
+            textAlign: col.align || 'left',
             zIndex: 10
           },
           on: event
@@ -209,7 +222,8 @@ export default {
       } else if (col.adjustable) {
         ths.push(createElement('th', {
           style: {
-            userSelect: 'none'
+            userSelect: 'none',
+            textAlign: col.align || 'left'
           },
           on: event
         }, [
@@ -257,7 +271,8 @@ export default {
       } else {
         ths.push(createElement('th', {
           style: {
-            userSelect: 'none'
+            userSelect: 'none',
+            textAlign: col.align || 'left'
           },
           on: event
         }, titleContent))
@@ -265,20 +280,6 @@ export default {
     })
 
     let renderData = this.filterSource
-    // 排序
-    if (this.needSort) {
-      if (this.sortType !== 'normal') {
-        const dir = this.sortType === 'asc' ? 1 : -1
-        renderData.sort((a, b) => {
-          return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
-        })
-      } else {
-        renderData.sort((a, b) => {
-          return defaultSortFn(a._index, b._index)
-        })
-      }
-      this.needSort = false
-    }
 
     // 分页
     if (this.pageSize > 0) {
@@ -422,6 +423,39 @@ export default {
     if (this.pageSize > 0) {
       const navigation = []
       const pages = Math.ceil(this.filterSource.length / this.pageSize)
+      navigation.push(createElement('span', {
+        style: {
+          marginRight: '5px'
+        }
+      }, '跳转到'))
+      navigation.push(createElement('input', {
+        attrs: {
+          value: that.pageIndex + 1,
+          type: 'number',
+          min: 1,
+          max: pages
+        },
+        style: {
+          width: (Math.floor(Math.log10(pages)) * 8 + 25) + 'px'
+        },
+        on: {
+          change: function (e) {
+            const to = parseInt(e.target.value)
+            if (to < 1) {
+              that.pageIndex = 0
+            } else if (to > pages) {
+              that.pageIndex = pages - 1
+            } else {
+              that.pageIndex = to - 1
+            }
+          }
+        }
+      }))
+      navigation.push(createElement('span', {
+        style: {
+          margin: '0 5px'
+        }
+      }, '页'))
       navigation.push(createElement('button', {
         class: 'x-nav-bt',
         domProps: {

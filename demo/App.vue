@@ -30,7 +30,8 @@ export default {
       columns: [
         {
           type: '_check',
-          width: 30,
+          width: 40,
+          align: 'center',
           fixed: 'left'
         },
         {
@@ -75,7 +76,7 @@ export default {
   },
   created () {
     const dataCache = []
-    for (let index = 0; index < 100000; index++) {
+    for (let index = 0; index < 10000; index++) {
       dataCache.push(...[{
         name: '真果切换绑阿萨德群无多无群定强无敌无抢班夺权我觉得千万 ',
         num: 2 * index + 0.2131213,

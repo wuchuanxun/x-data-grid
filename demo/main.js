@@ -1,8 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
 
-import xDataGrid from '../lib/xDataGrid.umd.min.js'
-Vue.use(xDataGrid)
+import xDataGrid from '../packages/x-data-grid'
+Vue.component('x-data-grid', xDataGrid)
 import '../lib/xDataGrid.css'
 
 new Vue({
