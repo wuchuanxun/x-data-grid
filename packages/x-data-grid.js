@@ -47,6 +47,18 @@ export default {
     rowKey: {
       type: String,
       default: '_index'
+    },
+    hiddenSearch: {
+      type: Boolean,
+      default: false
+    },
+    hiddenFooter: {
+      type: Boolean,
+      default: false
+    },
+    noDataText: {
+      type: String,
+      default: '没有数据'
     }
   },
 
@@ -428,9 +440,28 @@ export default {
       }, tds))
     })
 
-    let footer = null
+    if (renderData.length === 0) {
+      // 渲染替代文本
+      trs.push(createElement('tr', [
+        createElement('td', {
+          attrs: {
+            colspan: this.columns.length
+          },
+          style: {
+            textAlign: 'center',
+            lineHeight: '100px',
+            borderBottom: 0,
+            borderRight: 0,
+            fontSize: '20px',
+            opacity: 0.8,
+            letterSpacing: '5px'
+          }
+        }, this.noDataText)
+      ]))
+    }
+
+    const navigation = []
     if (this.pageSize > 0) {
-      const navigation = []
       const pages = Math.ceil(this.filterSource.length / this.pageSize)
       navigation.push(createElement('span', {
         style: {
@@ -448,7 +479,7 @@ export default {
           value: that.pageIndex + 1
         },
         style: {
-          width: (Math.floor(Math.log10(pages)) * 8 + 25) + 'px',
+          width: (Math.floor(Math.log10(pages)) * 8 + 30) + 'px',
           outlineStyle: 'none',
           border: '1px solid #ccc',
           fontSize: '15px',
@@ -500,24 +531,24 @@ export default {
           }
         }
       }, '>'))
-
-      const navigationDom = createElement('span', {
-        style: {
-          float: 'right'
-        }
-      }, navigation)
-      const infoDom = createElement('span', `共有数据${this.sourceLocal.length}条, 筛选结果${this.filterSource.length}条`)
-
-      footer = createElement('div', {
-        style: {
-          textAlign: 'left',
-          background: '#F8F8F9',
-          padding: '10px 10px',
-          fontSize: '14px',
-          borderTop: '1px solid #D8DADC'
-        }
-      }, [infoDom, navigationDom])
     }
+
+    const navigationDom = createElement('span', {
+      style: {
+        float: 'right'
+      }
+    }, navigation)
+    const infoDom = createElement('span', `共有数据${this.sourceLocal.length}条, 筛选结果${this.filterSource.length}条`)
+
+    const footer = createElement('div', {
+      style: {
+        textAlign: 'left',
+        background: '#F8F8F9',
+        padding: '10px 10px',
+        fontSize: '14px',
+        borderTop: '1px solid #D8DADC'
+      }
+    }, [infoDom, navigationDom])
 
     const searchOptions = []
     const keys = []
@@ -602,37 +633,41 @@ export default {
       }
     }, that.$slots._action))
 
-    return createElement('div', {
-      class: 'x-data-grid'
-    }, [
+    const nodes = this.hiddenSearch ? [] : [
       createElement('div', {
         class: 'x-table-title',
         style: {
           textAlign: 'left'
         }
-      }, search),
-      createElement('div', {
+      }, search)
+    ]
+    nodes.push(createElement('div', {
+      style: {
+        width: '100%',
+        height: this.height,
+        padding: '0 0 0 0',
+        overflowY: 'scroll',
+        overflowX: 'auto'
+      }
+    }, [
+      createElement('table', {
         style: {
-          width: '100%',
-          height: this.height,
-          padding: '0 0 0 0',
-          overflowY: 'scroll',
-          overflowX: 'auto'
+          margin: 0,
+          width: 'calc(100% - 4px)'
         }
       }, [
-        createElement('table', {
-          style: {
-            margin: 0,
-            width: 'calc(100% - 4px)'
-          }
-        }, [
-          createElement('colgroup', cols),
-          createElement('thead', [createElement('tr', ths)]),
-          createElement('tbody', trs)
-        ])
-      ]),
-      footer
-    ])
+        createElement('colgroup', cols),
+        createElement('thead', [createElement('tr', ths)]),
+        createElement('tbody', trs)
+      ])
+    ]))
+    if (!this.hiddenFooter) {
+      nodes.push(footer)
+    }
+
+    return createElement('div', {
+      class: 'x-data-grid'
+    }, nodes)
   },
 
   watch: {
