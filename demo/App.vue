@@ -59,7 +59,8 @@ export default {
         {
           title: '单价',
           adjustable: true,
-          key: 'unitPrice',
+          editable: false,
+          key: 'unitPrice.value',
           width: 800
         },
         {
@@ -81,19 +82,19 @@ export default {
       dataCache.push(...[{
         name: '真果切换绑阿萨德群无多无群定强无敌无抢班夺权我觉得千万 ',
         num: 2 * index + 0.2131213,
-        unitPrice: 59.9,
+        unitPrice: { value: 59.9 },
         id: index * 3
       },
       {
         name: '苏泊力锅 ',
         num: 3 * index,
-        unitPrice: 2132139128381278.0,
+        unitPrice: { value: 2132139128381278.0 },
         id: index * 3 + 1
       },
       {
         name: '乐薯片',
         num: 4 * index,
-        unitPrice: 63.0,
+        unitPrice: { value: 66.0 },
         id: index * 3 + 2
       }])
     }

@@ -11,6 +11,15 @@ const defaultSortFn = function (a, b) {
   return 0
 }
 
+function index (obj, i) { return obj[i] }
+const getValue = function (obj, key) {
+  if (key) {
+    return key.split('.').reduce(index, obj)
+  } else {
+    return obj
+  }
+}
+
 const defaultNumberFormat = '0,0[.]00'
 
 export default {
@@ -320,7 +329,7 @@ export default {
           overflow: 'hidden'
         } : {}
 
-        let tdContent = row[cell.key]
+        let tdContent = getValue(row, cell.key)
         if (cell.type === 'number') {
           tdContent = numeral(tdContent).format(cell.format)
         }
@@ -366,7 +375,14 @@ export default {
           styleText.borderLeft = '1px solid #D8DADC'
         }
 
-        if (that.editable === false) {
+        let editIt = that.editable
+        if (cell.editable === true) {
+          editIt = true
+        } else if (cell.editable === false) {
+          editIt = false
+        }
+
+        if (!editIt) {
           tds.push(createElement('td', {
             style: {
               wordBreak: 'break-all',
@@ -385,7 +401,7 @@ export default {
               fontSize: '16px'
             },
             attrs: {
-              value: row[cell.key]
+              value: getValue(row, cell.key)
             },
             ref: 'editCell',
             on: {
@@ -419,7 +435,7 @@ export default {
                 that.editCell = [row._index, cell.key]
                 setTimeout(() => {
                   that.$refs.editCell.focus()
-                  that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = row[cell.key].toString().length
+                  that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = getValue(row, cell.key).toString().length
                 }, 200)
               }
             }
@@ -694,12 +710,17 @@ export default {
   created () {
     this.columns.map(function (col, index) {
       // 新建字段，标识当前列排序类型；默认为“不排序”
-      col._sortType = 'normal'
+      col._sortType = col._sortType || 'normal'
       // 新建字段，标识当前列在数组中的索引
       col._index = index
       // 数值的格式化
       if (col.type === 'number' && !col.format) {
         col.format = defaultNumberFormat
+      }
+      if (col._sortType !== 'normal') {
+        this.sortFn = col.sortFn || defaultSortFn
+        this.sortKey = col.key
+        this.sortType = col._sortType
       }
       return col
     })
@@ -711,6 +732,15 @@ export default {
     })
 
     this.filterSource = this.sourceLocal
+
+    // 默认排序
+    if (this.sortType !== 'normal') {
+      const dir = this.sortType === 'asc' ? 1 : -1
+      const that = this
+      this.filterSource.sort((a, b) => {
+        return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+      })
+    }
 
     // 缩放列
     const that = this
