@@ -59,7 +59,6 @@ export default {
         {
           title: '单价',
           adjustable: true,
-          editable: false,
           key: 'unitPrice.value',
           width: 800
         },

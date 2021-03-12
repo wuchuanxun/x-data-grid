@@ -11,12 +11,36 @@ const defaultSortFn = function (a, b) {
   return 0
 }
 
-function index (obj, i) { return obj[i] }
-const getValue = function (obj, key) {
+function _index (obj, i) {
+  if (obj) {
+    return obj[i]
+  }
+  return null
+}
+
+function _set (obj, i) {
+  if (i in obj) {
+    return obj[i]
+  }
+  obj[i] = {}
+  return obj[i]
+}
+
+export const objectTakeByKey = function (obj, key) {
   if (key) {
-    return key.split('.').reduce(index, obj)
+    return key.split('.').reduce(_index, obj)
   } else {
     return obj
+  }
+}
+
+export const objectSetByKey = function (obj, key, value) {
+  const keys = key.split('.')
+  if (keys.length > 1) {
+    const objAt = keys.slice(0, -1).reduce(_set, obj)
+    objAt[keys[keys.length - 1]] = value
+  } else {
+    obj[key] = value
   }
 }
 
@@ -329,7 +353,7 @@ export default {
           overflow: 'hidden'
         } : {}
 
-        let tdContent = getValue(row, cell.key)
+        let tdContent = objectTakeByKey(row, cell.key)
         if (cell.type === 'number') {
           tdContent = numeral(tdContent).format(cell.format)
         }
@@ -401,7 +425,7 @@ export default {
               fontSize: '16px'
             },
             attrs: {
-              value: getValue(row, cell.key)
+              value: objectTakeByKey(row, cell.key)
             },
             ref: 'editCell',
             on: {
@@ -411,7 +435,12 @@ export default {
               },
               'keyup': function (e) {
                 if (e.key === 'Enter' || e.keyCode === 13) {
-                  that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                  if (that.editCell[1].includes('.')) {
+                    objectSetByKey(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                  } else {
+                    that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                  }
+
                   that.$set(that, 'editCell', [-1, -1])
                   that.$emit('editCell', row)
                 }
@@ -435,7 +464,7 @@ export default {
                 that.editCell = [row._index, cell.key]
                 setTimeout(() => {
                   that.$refs.editCell.focus()
-                  that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = getValue(row, cell.key).toString().length
+                  that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = objectTakeByKey(row, cell.key).toString().length
                 }, 200)
               }
             }
@@ -708,6 +737,7 @@ export default {
   },
 
   created () {
+    const that = this
     this.columns.map(function (col, index) {
       // 新建字段，标识当前列排序类型；默认为“不排序”
       col._sortType = col._sortType || 'normal'
@@ -718,9 +748,9 @@ export default {
         col.format = defaultNumberFormat
       }
       if (col._sortType !== 'normal') {
-        this.sortFn = col.sortFn || defaultSortFn
-        this.sortKey = col.key
-        this.sortType = col._sortType
+        that.sortFn = col.sortFn || defaultSortFn
+        that.sortKey = col.key
+        that.sortType = col._sortType
       }
       return col
     })
@@ -736,14 +766,12 @@ export default {
     // 默认排序
     if (this.sortType !== 'normal') {
       const dir = this.sortType === 'asc' ? 1 : -1
-      const that = this
       this.filterSource.sort((a, b) => {
         return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
       })
     }
 
     // 缩放列
-    const that = this
     document.addEventListener('mousemove', function (e) {
       if (that.inResize) {
         var diffX = e.pageX - that.pageX
