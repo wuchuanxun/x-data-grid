@@ -85,7 +85,7 @@ export default {
         id: index * 3
       },
       {
-        name: '苏泊力锅 ',
+        name: ['苏泊力锅', 'dadqw'],
         num: 3 * index,
         unitPrice: { value: 2132139128381278.0 },
         id: index * 3 + 1

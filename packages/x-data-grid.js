@@ -356,6 +356,8 @@ export default {
         let tdContent = objectTakeByKey(row, cell.key)
         if (cell.type === 'number') {
           tdContent = numeral(tdContent).format(cell.format)
+        } else if (cell.type === 'text') {
+          tdContent = JSON.stringify(tdContent)
         }
 
         if (cell.type === '_check') {
