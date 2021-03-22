@@ -92,6 +92,18 @@ export default {
     noDataText: {
       type: String,
       default: '没有数据'
+    },
+    overwriteSearch: {
+      type: Boolean,
+      default: false
+    },
+    clickExpand: {
+      type: Boolean,
+      default: false
+    },
+    enableExpand: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -480,11 +492,26 @@ export default {
         },
         on: {
           click: function () {
+            if (that.clickExpand) {
+              that.$set(row, '_expanded', !row._expanded)
+            }
+
+            if (that.activeRowKey === row[that.rowKey]) return
             that.activeRowKey = row[that.rowKey]
             that.$emit('activeRowChanged', row)
           }
         }
       }, tds))
+
+      if (that.enableExpand && row._expanded) {
+        trs.push(createElement('tr', [
+          createElement('td', {
+            attrs: {
+              colspan: that.columns.length
+            }
+          }, that.$scopedSlots.expandedRowRender(row, rindex))
+        ]))
+      }
     })
 
     if (renderData.length === 0) {
@@ -609,42 +636,30 @@ export default {
     }
 
     const search = []
-    search.push(createElement('select', {
-      on: {
-        'change': function (e) {
-          that.options.keys = [e.target.value]
+    if (this.overwriteSearch) {
+      search.push(createElement('span', this.$slots._search))
+    } else {
+      search.push(createElement('select', {
+        on: {
+          'change': function (e) {
+            that.options.keys = [e.target.value]
+          }
         }
-      }
-    }, [
-      createElement('option', { attrs: { value: '.' }}, '全部'),
-      ...searchOptions
-    ]))
-    search.push(createElement('input', {
-      domProps: {
-        value: that.searchSchema
-      },
-      on: {
-        'input': debounce(function (e) {
-          if (that.options.keys.includes('.')) {
-            that.options.keys = keys
-          }
-          const text = e.target.value.trim()
-
-          that.searchSchema = text
-          if (text.length === 0) {
-            that.filterSource = that.sourceLocal
-          } else {
-            that.filterSource = that.fuse.search(text).map(p => p.item)
-          }
-          that.pageIndex = 0
-        }, 300),
-
-        'keyup': function (e) {
-          if (e.key === 'Enter' || e.keyCode === 13) {
+      }, [
+        createElement('option', { attrs: { value: '.' }}, '全部'),
+        ...searchOptions
+      ]))
+      search.push(createElement('input', {
+        domProps: {
+          value: that.searchSchema
+        },
+        on: {
+          'input': debounce(function (e) {
             if (that.options.keys.includes('.')) {
               that.options.keys = keys
             }
             const text = e.target.value.trim()
+
             that.searchSchema = text
             if (text.length === 0) {
               that.filterSource = that.sourceLocal
@@ -652,27 +667,43 @@ export default {
               that.filterSource = that.fuse.search(text).map(p => p.item)
             }
             that.pageIndex = 0
+          }, 300),
+
+          'keyup': function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+              if (that.options.keys.includes('.')) {
+                that.options.keys = keys
+              }
+              const text = e.target.value.trim()
+              that.searchSchema = text
+              if (text.length === 0) {
+                that.filterSource = that.sourceLocal
+              } else {
+                that.filterSource = that.fuse.search(text).map(p => p.item)
+              }
+              that.pageIndex = 0
+            }
           }
         }
-      }
-    }))
+      }))
 
-    search.push(createElement('span', {
-      style: {
-        color: '#5A77B3',
-        marginLeft: '5px'
-      },
-      attrs: {
-        tooltip: `文本前加=表示完全匹配
-        文本前加'表示包含
-        文本前加!表示不包含
-        文本前加^表示开头为
-        文本前加!^表示开头不为
-        文本后加$表示结尾为
-        文本前加!，后加$表结尾不为
-        空格表示与，|表示或`
-      }
-    }, '☀'))
+      search.push(createElement('span', {
+        style: {
+          color: '#5A77B3',
+          marginLeft: '5px'
+        },
+        attrs: {
+          tooltip: `文本前加=表示完全匹配
+          文本前加'表示包含
+          文本前加!表示不包含
+          文本前加^表示开头为
+          文本前加!^表示开头不为
+          文本后加$表示结尾为
+          文本前加!，后加$表结尾不为
+          空格表示与，|表示或`
+        }
+      }, '☀'))
+    }
 
     search.push(createElement('span', {
       style: {

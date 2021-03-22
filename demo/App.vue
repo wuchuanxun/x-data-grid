@@ -7,6 +7,7 @@
       :columns="columns"
       :page-size="50"
       :page-index="0"
+      :click-expand="true"
       @selectChanged="showId"
     >
       <template slot="_action">
@@ -20,6 +21,12 @@
           删除
         </button>
       </template>
+      <p
+        slot="expandedRowRender"
+        slot-scope="record,index"
+      >
+        展开行数据下标为: {{ index }}
+      </p>
     </x-data-grid>
   </div>
 </template>

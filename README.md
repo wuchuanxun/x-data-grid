@@ -31,6 +31,9 @@ import 'x-data-grid/lib/xDataGrid.css'
 | hiddenSearch | Boolean      | 隐藏搜索行           |
 | hiddenFooter | Boolean      | 隐藏底部分页栏       |
 | noDataText   | String       | 没有数据显示的文本   |
+| overwriteSearch   | Boolean  | 用slot=_search替换搜索框 |
+| enableExpand | Boolean | 是否允许展开行 |
+| clickExpand | Boolean | 单机展开行，建议不与editable混用 |
 
 
 
@@ -48,6 +51,7 @@ import 'x-data-grid/lib/xDataGrid.css'
 | sortFn      | function(a,b): number |                      | 自定义排序比较函数，可以不指定 |
 | scopedSlots | String                |                      | 自定义插槽                     |
 | align       | String                | left\|center\|right  | 对齐方式                       |
+| ellipsis    | Boolean               |                      | 是否使用省略号                 |
 | _sortType   | String                | normal\|asc\|desc    | 默认排序方式                   |
 
 
@@ -78,3 +82,25 @@ import 'x-data-grid/lib/xDataGrid.css'
 | activeRowChanged | rowData       | 点选行，参数表示行数据 |
 
 注：双击启用编辑，回车确定更改
+
+
+
+#### 行选择
+
+`_checked` 属性表示是否选中
+
+
+
+#### 行展开
+
+`_expanded` 属性表示是否展开， 展开渲染插槽
+
+```vue
+<p
+   slot="expandedRowRender"
+   slot-scope="record,index"
+>
+    {{record}} {{index}}
+</p>
+```
+
