@@ -297,8 +297,8 @@ export default {
           createElement('div', {
             style: {
               top: 0,
-              right: '-4px',
-              width: '8px',
+              right: index === that.columns.length - 1 ? 0 : '-4px',
+              width: index === that.columns.length - 1 ? '4px' : '8px',
               position: 'absolute',
               cursor: 'col-resize',
               height: '100%',
@@ -392,6 +392,9 @@ export default {
                     }
                   }
                   that.$emit('selectChanged', rKeys)
+                },
+                click (e) {
+                  e.stopPropagation()
                 }
               }
             })
@@ -429,11 +432,15 @@ export default {
             }
           }, tdContent))
         } else if (that.editCell[0] === row._index && that.editCell[1] === cell.key) {
-          tds.push(createElement('td', [createElement('input', {
+          tds.push(createElement('td', {
+            style: {
+              padding: 0
+            }
+          }, [createElement('input', {
             style: {
               width: '100%',
               margin: 0,
-              padding: 0,
+              padding: '5px 0px',
               border: 'none',
               outlineStyle: 'none',
               fontSize: '16px'
@@ -494,6 +501,8 @@ export default {
           click: function () {
             if (that.clickExpand) {
               that.$set(row, '_expanded', !row._expanded)
+              // 强制刷新
+              that.filterSource.push()
             }
 
             if (that.activeRowKey === row[that.rowKey]) return
@@ -724,14 +733,14 @@ export default {
         width: '100%',
         height: this.height,
         padding: '0 0 0 0',
-        overflowY: 'scroll',
+        overflowY: 'auto',
         overflowX: 'auto'
       }
     }, [
       createElement('table', {
         style: {
           margin: 0,
-          width: 'calc(100% - 4px)'
+          width: '100%'
         }
       }, [
         createElement('colgroup', cols),
@@ -753,11 +762,17 @@ export default {
       this.sourceLocal = this.source.map(function (row, index) {
         // 新建字段，标识当前行在数组中的索引
         row._index = index
+        row._expanded = row._expanded || false
+        row._checked = row._checked || false
         return row
       })
 
-      this.filterSource = this.sourceLocal
-      this.searchSchema = ''
+      if (this.searchSchema.trim() === '') {
+        this.filterSource = this.sourceLocal
+      } else {
+        this.filterSource = this.fuse.search(this.searchSchema).map(p => p.item)
+      }
+
       // 重新排序
       if (this.sortType !== 'normal') {
         const dir = this.sortType === 'asc' ? 1 : -1
@@ -791,6 +806,8 @@ export default {
     this.sourceLocal = this.source.map(function (row, index) {
       // 新建字段，标识当前行在数组中的索引
       row._index = index
+      row._expanded = row._expanded || false
+      row._checked = row._checked || false
       return row
     })
 
@@ -819,5 +836,14 @@ export default {
       that.inResize = false
       that.pageX = undefined
     })
+
+    this.filterData = debounce(this.filterData, 300)
+  },
+
+  methods: {
+    filterData (handler) {
+      if (typeof handler !== 'function') return
+      this.filterSource = handler(this.sourceLocal)
+    }
   }
 }

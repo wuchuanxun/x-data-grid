@@ -104,3 +104,21 @@ import 'x-data-grid/lib/xDataGrid.css'
 </p>
 ```
 
+
+
+#### 自定义筛选
+
+`overwriteSearch` 用自己的筛选代替原有的
+调用节点函数 `filterData`, 传入筛选的函数，函数接收原始的数组作为输入，返回筛选后的数组
+
+
+
+#### 修改行间距
+
+```scss
+.x-data-grid {
+    th,td{
+      padding: 4px 6px !important;
+    }
+}
+```

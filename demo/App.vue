@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <x-data-grid
+      ref="grid"
       height="calc(100vh - 200px)"
       :editable="true"
       :source="data"
@@ -8,6 +9,7 @@
       :page-size="50"
       :page-index="0"
       :click-expand="true"
+      enable-expand
       @selectChanged="showId"
     >
       <template slot="_action">
@@ -48,7 +50,6 @@ export default {
           key: 'name',
           type: 'text',
           adjustable: true,
-          filterable: true,
           width: 100,
           ellipsis: true,
           sortable: true
@@ -73,8 +74,8 @@ export default {
           title: '操作',
           key: 'none',
           width: 100,
-          scopedSlots: 'operation',
-          fixed: 'right'
+          adjustable: true,
+          scopedSlots: 'operation'
         }
       ],
       data: [
@@ -84,7 +85,7 @@ export default {
   },
   created () {
     const dataCache = []
-    for (let index = 0; index < 10000; index++) {
+    for (let index = 0; index < 20; index++) {
       dataCache.push(...[{
         name: '真果切换绑阿萨德群无多无群定强无敌无抢班夺权我觉得千万 ',
         num: 2 * index + 0.2131213,
@@ -98,7 +99,7 @@ export default {
         id: index * 3 + 1
       },
       {
-        name: '乐薯片',
+        name: { name: '乐薯片' },
         num: 4 * index,
         unitPrice: { value: 66.0 },
         id: index * 3 + 2
@@ -112,6 +113,12 @@ export default {
     },
     deleteRow (row) {
 
+    },
+
+    slice10 () {
+      this.$refs.grid.filterData((source) => {
+        return source.slice(0, 10)
+      })
     }
   }
 }
@@ -125,5 +132,11 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+.x-data-grid {
+    th,td{
+      padding: 6px 10px !important;
+    }
 }
 </style>

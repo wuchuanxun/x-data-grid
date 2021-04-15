@@ -1,5 +1,4 @@
 .x-data-grid {
-  height: 100%;
   text-align: left;
   border: 1px solid #D8DADC;
 
@@ -7,6 +6,7 @@
     /*合并边框模型*/
     border-collapse: separate;
     border-spacing: 0;
+
     /*在空单元格周围绘制边框*/
     empty-cells: show;
     table-layout:fixed;
@@ -14,6 +14,7 @@
     th {
       position:sticky;
       top: 0;
+      z-index: 3;
       background-color: #F8F8F9;
       border-right: 1px solid #D8DADC;
     }
@@ -27,7 +28,7 @@
     }
   
     th,td{
-      padding: 0 2px;
+      padding: 4px 6px;
       border-right: 1px solid #D8DADC;
       border-bottom: 1px solid #D8DADC;
     }
