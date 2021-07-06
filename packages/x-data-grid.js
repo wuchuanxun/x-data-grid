@@ -1,6 +1,7 @@
 import Fuse from 'fuse.js'
 import { debounce } from 'debounce'
 import numeral from 'numeral'
+import Dots from './dots.vue'
 
 const defaultSortFn = function (a, b) {
   if (a < b) {
@@ -97,6 +98,10 @@ export default {
       type: Boolean,
       default: false
     },
+    hiddenInfo: {
+      type: Boolean,
+      default: false
+    },
     clickExpand: {
       type: Boolean,
       default: false
@@ -104,6 +109,18 @@ export default {
     enableExpand: {
       type: Boolean,
       default: false
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    enableActiveRow: {
+      type: Boolean,
+      default: true
+    },
+    zebra: {
+      type: Boolean,
+      default: true
     }
   },
 
@@ -122,7 +139,8 @@ export default {
 
       options: {
         useExtendedSearch: true,
-        keys: ['.']
+        keys: ['.'],
+        prefix: "'"
       },
 
       filterSource: [],
@@ -132,7 +150,9 @@ export default {
       sortFn: defaultSortFn,
       sortType: 'normal',
       sortKey: null,
-      searchSchema: ''
+      searchSchema: '',
+
+      checkedKeys: []
     }
   },
 
@@ -201,6 +221,9 @@ export default {
                     rKeys.push(rr[that.rowKey])
                   }
                 }
+                that.checkedKeys = rKeys
+                // 强制刷新
+                that.filterSource.push()
                 that.$emit('selectChanged', rKeys)
               }
             }
@@ -339,191 +362,7 @@ export default {
 
     let renderData = this.filterSource
 
-    // 分页
-    if (this.pageSize > 0) {
-      renderData = renderData.slice(this.pageSize * this.pageIndex, this.pageSize * this.pageIndex + this.pageSize)
-    }
-
-    renderData.forEach(function (row, rindex) { // 遍历行
-      var tds = []// <td> 标签数组
-
-      fixL = 0
-      fixR = fixRAll
-
-      if (that.enableRowSelector) {
-        tds.push(createElement('input', {
-          attrs: {
-            type: 'checkbox'
-          }
-        }))
-      }
-
-      that.columns.forEach(function (cell) { // 遍历单元格
-        const styleText = cell.ellipsis ? {
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden'
-        } : {}
-
-        let tdContent = objectTakeByKey(row, cell.key)
-        if (cell.type === 'number') {
-          tdContent = numeral(tdContent).format(cell.format)
-        } else if (cell.type === 'text' && tdContent instanceof Object) {
-          tdContent = JSON.stringify(tdContent)
-        }
-
-        if (cell.type === '_check') {
-          tdContent = [
-            createElement('input', {
-              attrs: {
-                type: 'checkbox'
-              },
-              domProps: {
-                checked: row._checked
-              },
-              on: {
-                change (e) {
-                  const status = e.target.checked
-                  that.$set(row, '_checked', status)
-                  const rKeys = []
-                  for (const rr of renderData) {
-                    if (rr._checked) {
-                      rKeys.push(rr[that.rowKey])
-                    }
-                  }
-                  that.$emit('selectChanged', rKeys)
-                },
-                click (e) {
-                  e.stopPropagation()
-                }
-              }
-            })
-          ]
-        } else if (cell.scopedSlots) {
-          tdContent = that.$scopedSlots[cell.scopedSlots](tdContent, row, row._index)
-        }
-
-        if (cell.fixed === 'left') {
-          styleText.position = 'sticky'
-          styleText.left = fixL + 'px'
-          styleText.zIndex = 9
-          fixL += cell.width
-        } else if (cell.fixed === 'right') {
-          fixR -= cell.width
-          styleText.position = 'sticky'
-          styleText.right = fixR + 'px'
-          styleText.zIndex = 9
-          styleText.borderLeft = '1px solid #D8DADC'
-        }
-
-        let editIt = that.editable
-        if (cell.editable === true) {
-          editIt = true
-        } else if (cell.editable === false) {
-          editIt = false
-        }
-
-        if (!editIt) {
-          tds.push(createElement('td', {
-            style: {
-              wordBreak: 'break-all',
-              textAlign: cell.align || 'left',
-              ...styleText
-            }
-          }, tdContent))
-        } else if (that.editCell[0] === row._index && that.editCell[1] === cell.key) {
-          tds.push(createElement('td', {
-            style: {
-              padding: 0
-            }
-          }, [createElement('input', {
-            style: {
-              width: '100%',
-              margin: 0,
-              padding: '5px 0px',
-              border: 'none',
-              outlineStyle: 'none',
-              fontSize: '16px'
-            },
-            attrs: {
-              value: objectTakeByKey(row, cell.key)
-            },
-            ref: 'editCell',
-            on: {
-              blur: function () {
-                // 修改数据
-                that.$set(that, 'editCell', [-1, -1])
-              },
-              'keyup': function (e) {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                  if (that.editCell[1].includes('.')) {
-                    objectSetByKey(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
-                  } else {
-                    that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
-                  }
-
-                  that.$set(that, 'editCell', [-1, -1])
-                  that.$emit('editCell', row)
-                }
-              }
-            }
-          })]))
-        } else {
-          tds.push(createElement('td', {
-            style: {
-              wordBreak: 'break-all',
-              textAlign: cell.align || 'left',
-              ...styleText
-            },
-            on: {
-              'dblclick': function (e) {
-                if (cell.type === '_check' || cell.scopedSlots) {
-                  // 不允许编辑
-                  return false
-                }
-
-                that.editCell = [row._index, cell.key]
-                setTimeout(() => {
-                  that.$refs.editCell.focus()
-                  that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = objectTakeByKey(row, cell.key).toString().length
-                }, 200)
-              }
-            }
-          }, tdContent))
-        }
-      })
-      trs.push(createElement('tr', {
-        class: {
-          'zebra-pattern': rindex % 2 === 1,
-          'active': row[that.rowKey] === that.activeRowKey
-        },
-        on: {
-          click: function () {
-            if (that.clickExpand) {
-              that.$set(row, '_expanded', !row._expanded)
-              // 强制刷新
-              that.filterSource.push()
-            }
-
-            if (that.activeRowKey === row[that.rowKey]) return
-            that.activeRowKey = row[that.rowKey]
-            that.$emit('activeRowChanged', row)
-          }
-        }
-      }, tds))
-
-      if (that.enableExpand && row._expanded) {
-        trs.push(createElement('tr', [
-          createElement('td', {
-            attrs: {
-              colspan: that.columns.length
-            }
-          }, that.$scopedSlots.expandedRowRender(row, rindex))
-        ]))
-      }
-    })
-
-    if (renderData.length === 0) {
+    if (this.loading) {
       // 渲染替代文本
       trs.push(createElement('tr', [
         createElement('td', {
@@ -535,12 +374,224 @@ export default {
             lineHeight: '100px',
             borderBottom: 0,
             borderRight: 0,
-            fontSize: '20px',
             opacity: 0.8,
-            letterSpacing: '5px'
+            letterSpacing: '5px',
+            background: 'transparent'
           }
-        }, this.noDataText)
+        }, [createElement(Dots)])
       ]))
+    } else {
+      // 分页
+      if (this.pageSize > 0) {
+        renderData = renderData.slice(this.pageSize * this.pageIndex, this.pageSize * this.pageIndex + this.pageSize)
+      }
+
+      renderData.forEach(function (row, rindex) { // 遍历行
+        var tds = []// <td> 标签数组
+
+        fixL = 0
+        fixR = fixRAll
+
+        that.columns.forEach(function (cell) { // 遍历单元格
+          const styleText = cell.ellipsis ? {
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden'
+          } : {}
+
+          let tdContent = objectTakeByKey(row, cell.key)
+          const originalValue = tdContent
+
+          let concatAttrs = {}
+          if (cell.customAttrs) {
+          // 自定义属性
+            concatAttrs = cell.customAttrs(originalValue, row, rindex, renderData)
+            if (concatAttrs.rowspan === 0) return
+            if (concatAttrs.colspan === 0) return
+          }
+
+          if (cell.type === 'number') {
+            tdContent = numeral(tdContent).format(cell.format)
+          } else if (cell.type === 'text' && tdContent instanceof Object) {
+            tdContent = JSON.stringify(tdContent)
+          }
+
+          let editIt = that.editable
+          if (cell.type === '_check') {
+            tdContent = [
+              createElement('input', {
+                attrs: {
+                  type: 'checkbox'
+                },
+                domProps: {
+                  checked: row._checked
+                },
+                on: {
+                  change (e) {
+                    const status = e.target.checked
+                    that.$set(row, '_checked', status)
+                    const rKeys = []
+                    for (const rr of renderData) {
+                      if (rr._checked) {
+                        rKeys.push(rr[that.rowKey])
+                      }
+                    }
+                    that.checkedKeys = rKeys
+                    that.$emit('selectChanged', rKeys)
+                  },
+                  click (e) {
+                    e.stopPropagation()
+                  }
+                }
+              })
+            ]
+          } else if (cell.scopedSlots) {
+            editIt = false
+            tdContent = that.$scopedSlots[cell.scopedSlots](originalValue, row, row._index)
+          }
+
+          if (cell.fixed === 'left') {
+            styleText.position = 'sticky'
+            styleText.left = fixL + 'px'
+            styleText.zIndex = 9
+            fixL += cell.width
+          } else if (cell.fixed === 'right') {
+            fixR -= cell.width
+            styleText.position = 'sticky'
+            styleText.right = fixR + 'px'
+            styleText.zIndex = 9
+            styleText.borderLeft = '1px solid #D8DADC'
+          }
+
+          if (cell.editable === true) {
+            editIt = true
+          } else if (cell.editable === false) {
+            editIt = false
+          }
+
+          if (!editIt) {
+            tds.push(createElement('td', {
+              attrs: concatAttrs,
+              style: {
+                wordBreak: 'break-all',
+                textAlign: cell.align || 'left',
+                ...styleText
+              }
+            }, tdContent))
+          } else if (that.editCell[0] === row._index && that.editCell[1] === cell.key) {
+            tds.push(createElement('td', {
+              attrs: concatAttrs,
+              style: {
+                padding: 0
+              }
+            }, [createElement('input', {
+              style: {
+                width: '100%',
+                margin: 0,
+                padding: '5px 0px',
+                border: 'none',
+                outlineStyle: 'none',
+                fontSize: '16px'
+              },
+              attrs: {
+                value: objectTakeByKey(row, cell.key)
+              },
+              ref: 'editCell',
+              on: {
+                blur: function () {
+                // 修改数据
+                  that.$set(that, 'editCell', [-1, -1])
+                },
+                'keyup': function (e) {
+                  if (e.key === 'Enter' || e.keyCode === 13) {
+                    if (that.editCell[1].includes('.')) {
+                      objectSetByKey(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                    } else {
+                      that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                    }
+
+                    that.$set(that, 'editCell', [-1, -1])
+                    that.$emit('editCell', row)
+                  }
+                }
+              }
+            })]))
+          } else {
+            tds.push(createElement('td', {
+              attrs: concatAttrs,
+              style: {
+                wordBreak: 'break-all',
+                textAlign: cell.align || 'left',
+                ...styleText
+              },
+              on: {
+                'dblclick': function (e) {
+                  if (cell.type === '_check') {
+                  // 不允许编辑
+                    return false
+                  }
+
+                  that.editCell = [row._index, cell.key]
+                  setTimeout(() => {
+                    that.$refs.editCell.focus()
+                    that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = objectTakeByKey(row, cell.key).toString().length
+                  }, 200)
+                }
+              }
+            }, tdContent))
+          }
+        })
+        trs.push(createElement('tr', {
+          class: {
+            'zebra-pattern': rindex % 2 === 1 && that.zebra,
+            'active': row[that.rowKey] === that.activeRowKey && that.enableActiveRow
+          },
+          on: {
+            click: function () {
+              if (that.clickExpand) {
+                that.$set(row, '_expanded', !row._expanded)
+                // 强制刷新
+                that.filterSource.push()
+              }
+
+              if (that.activeRowKey === row[that.rowKey]) return
+              that.activeRowKey = row[that.rowKey]
+              that.$emit('activeRowChanged', row)
+            }
+          }
+        }, tds))
+
+        if (that.enableExpand && row._expanded) {
+          trs.push(createElement('tr', [
+            createElement('td', {
+              attrs: {
+                colspan: that.columns.length
+              }
+            }, that.$scopedSlots.expandedRowRender(row, rindex))
+          ]))
+        }
+      })
+
+      if (renderData.length === 0) {
+        // 渲染替代文本
+        trs.push(createElement('tr', [
+          createElement('td', {
+            attrs: {
+              colspan: this.columns.length
+            },
+            style: {
+              textAlign: 'center',
+              lineHeight: '100px',
+              borderBottom: 0,
+              borderRight: 0,
+              fontSize: '20px',
+              opacity: 0.8,
+              letterSpacing: '5px',
+              background: 'transparent'
+            }
+          }, this.noDataText)
+        ]))
+      }
     }
 
     const navigation = []
@@ -621,17 +672,6 @@ export default {
         float: 'right'
       }
     }, navigation)
-    const infoDom = createElement('span', `共有数据${this.sourceLocal.length}条, 筛选结果${this.filterSource.length}条`)
-
-    const footer = createElement('div', {
-      style: {
-        textAlign: 'left',
-        background: '#F8F8F9',
-        padding: '10px 10px',
-        fontSize: '14px',
-        borderTop: '1px solid #D8DADC'
-      }
-    }, [infoDom, navigationDom])
 
     const searchOptions = []
     const keys = []
@@ -644,23 +684,89 @@ export default {
       }
     }
 
+    let infoDom = null
+    if (!this.hiddenInfo) {
+      let t = `共${this.sourceLocal.length}条数据`
+
+      if (searchOptions.length > 0 && this.filterSource.length !== this.sourceLocal.length) {
+        t += `，筛选结果${this.filterSource.length}条`
+      }
+      if (this.checkedKeys.length > 0) {
+        t += `，已选${this.checkedKeys.length}条`
+      }
+      infoDom = createElement('span', t)
+    }
+
+    const footer = createElement('div', {
+      style: {
+        textAlign: 'left',
+        background: '#F8F8F9',
+        padding: '10px 10px',
+        fontSize: '14px',
+        minHeight: '20px',
+        borderTop: '1px solid #D8DADC'
+      }
+    }, [infoDom, navigationDom])
+
     const search = []
     if (this.overwriteSearch) {
       search.push(createElement('span', this.$slots._search))
-    } else {
+    } else if (searchOptions.length > 0) {
+      if (searchOptions.length === 1) {
+        search.push(searchOptions[0].children[0].text + ' /')
+        that.options.keys = keys[0]
+      } else {
+        search.push(createElement('select', {
+          style: {
+            backgroundColor: '#FAFAFA',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px 0 0 4px',
+            margin: '0',
+            padding: '0px 8px',
+            appearance: 'none'
+          },
+          on: {
+            'change': function (e) {
+              that.options.keys = [e.target.value]
+            }
+          }
+        }, [
+          createElement('option', { attrs: { value: '.' }}, '任意字段'),
+          ...searchOptions
+        ]))
+      }
+
       search.push(createElement('select', {
+        style: {
+          backgroundColor: '#FAFAFA',
+          border: '1px solid #d9d9d9',
+          margin: '0 -1px',
+          padding: '0px 8px',
+          appearance: 'none'
+        },
         on: {
           'change': function (e) {
-            that.options.keys = [e.target.value]
+            that.options.prefix = e.target.value
           }
         }
       }, [
-        createElement('option', { attrs: { value: '.' }}, '全部'),
-        ...searchOptions
+        createElement('option', { attrs: { value: "'" }}, '包含'),
+        createElement('option', { attrs: { value: '!' }}, '不包含'),
+        createElement('option', { attrs: { value: '^' }}, '开头为'),
+        createElement('option', { attrs: { value: '=' }}, '等于')
       ]))
+
       search.push(createElement('input', {
         domProps: {
           value: that.searchSchema
+        },
+        style: {
+          backgroundColor: 'white',
+          border: '1px solid #d9d9d9',
+          borderRadius: '0 4px 4px 0',
+          margin: '0',
+          height: '24px',
+          lineHeight: '24px'
         },
         on: {
           'input': debounce(function (e) {
@@ -673,7 +779,7 @@ export default {
             if (text.length === 0) {
               that.filterSource = that.sourceLocal
             } else {
-              that.filterSource = that.fuse.search(text).map(p => p.item)
+              that.filterSource = that.fuse.search(that.options.prefix + text).map(p => p.item)
             }
             that.pageIndex = 0
           }, 300),
@@ -688,43 +794,28 @@ export default {
               if (text.length === 0) {
                 that.filterSource = that.sourceLocal
               } else {
-                that.filterSource = that.fuse.search(text).map(p => p.item)
+                that.filterSource = that.fuse.search(that.options.prefix + text).map(p => p.item)
               }
               that.pageIndex = 0
             }
           }
         }
       }))
-
-      search.push(createElement('span', {
-        style: {
-          color: '#5A77B3',
-          marginLeft: '5px'
-        },
-        attrs: {
-          tooltip: `文本前加=表示完全匹配
-          文本前加'表示包含
-          文本前加!表示不包含
-          文本前加^表示开头为
-          文本前加!^表示开头不为
-          文本后加$表示结尾为
-          文本前加!，后加$表结尾不为
-          空格表示与，|表示或`
-        }
-      }, '☀'))
     }
 
-    search.push(createElement('span', {
+    search.push(createElement('div', {
       style: {
-        float: 'right'
+        margin: '0 auto'
       }
-    }, that.$slots._action))
+    }))
+    search.push(createElement('span', {}, that.$slots._action))
 
     const nodes = this.hiddenSearch ? [] : [
       createElement('div', {
         class: 'x-table-title',
         style: {
-          textAlign: 'left'
+          textAlign: 'left',
+          display: 'flex'
         }
       }, search)
     ]
@@ -759,18 +850,23 @@ export default {
 
   watch: {
     source () {
+      const checkedKeys = this.checkedKeys
+      const rowKey = this.rowKey
       this.sourceLocal = this.source.map(function (row, index) {
         // 新建字段，标识当前行在数组中的索引
         row._index = index
         row._expanded = row._expanded || false
-        row._checked = row._checked || false
+        if (row._checked === undefined) {
+          row._checked = checkedKeys.includes(row[rowKey])
+        }
         return row
       })
+      this.checkedKeys = this.sourceLocal.filter(p => p._checked).map(p => p[rowKey])
 
       if (this.searchSchema.trim() === '') {
         this.filterSource = this.sourceLocal
       } else {
-        this.filterSource = this.fuse.search(this.searchSchema).map(p => p.item)
+        this.filterSource = this.fuse.search(this.options.prefix + this.searchSchema).map(p => p.item)
       }
 
       // 重新排序

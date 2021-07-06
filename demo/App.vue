@@ -8,8 +8,6 @@
       :columns="columns"
       :page-size="50"
       :page-index="0"
-      :click-expand="true"
-      enable-expand
       @selectChanged="showId"
     >
       <template slot="_action">
@@ -52,7 +50,24 @@ export default {
           adjustable: true,
           width: 100,
           ellipsis: true,
-          sortable: true
+          sortable: true,
+          customAttrs: function (value, row, index, source) {
+            if (index > 0 && source[index].name === source[index - 1].name) {
+              return {
+                rowspan: 0
+              }
+            }
+            let rowspan = 1
+            const rname = source[index].name
+            let ri = index + 1
+            while (ri < source.length && source[ri].name === rname) {
+              ri++
+              rowspan++
+            }
+            return {
+              rowspan: rowspan
+            }
+          }
         },
         {
           title: '数量',
@@ -68,6 +83,7 @@ export default {
           title: '单价',
           adjustable: true,
           key: 'unitPrice.value',
+          filterable: true,
           width: 800
         },
         {
@@ -106,6 +122,11 @@ export default {
       }])
     }
     this.data = dataCache
+    const that = this
+    setTimeout(() => {
+      that.data[0]._checked = true
+      that.data.push()
+    }, 5000)
   },
   methods: {
     showId (checkedKeys) {

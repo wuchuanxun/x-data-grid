@@ -34,25 +34,30 @@ import 'x-data-grid/lib/xDataGrid.css'
 | overwriteSearch   | Boolean  | 用slot=_search替换搜索框 |
 | enableExpand | Boolean | 是否允许展开行 |
 | clickExpand | Boolean | 单机展开行，建议不与editable混用 |
+| hiddenInfo | Boolean | 隐藏左下角统计信息 |
+| loading | Boolean | 是否加载中，显示加载动画 |
+| enableActiveRow | Boolean | 是否允许高亮行 |
+| zebra | Boolean | 是否启用斑马条纹 |
 
 
 
 #### 列定义
 
-| 属性        | 类型                  | 选项                 | 说明                           |
-| ----------- | --------------------- | -------------------- | ------------------------------ |
-| type        | Sting                 | text\|number\|_check | _check表示勾选框               |
-| width       | Number                |                      |                                |
-| title       | String                |                      | 行标题                         |
-| key         | String\|Number        |                      | 属性索引，可使用.              |
-| adjustable  | Boolean               |                      | 可调整列宽                     |
-| filterable  | Boolean               |                      | 加入搜索，默认False            |
-| sortable    | Boolean               |                      | 是否可以搜索                   |
-| sortFn      | function(a,b): number |                      | 自定义排序比较函数，可以不指定 |
-| scopedSlots | String                |                      | 自定义插槽                     |
-| align       | String                | left\|center\|right  | 对齐方式                       |
-| ellipsis    | Boolean               |                      | 是否使用省略号                 |
-| _sortType   | String                | normal\|asc\|desc    | 默认排序方式                   |
+| 属性        | 类型                  | 选项                 | 说明                             |
+| ----------- | --------------------- | -------------------- | -------------------------------- |
+| type        | Sting                 | text\|number\|_check | _check表示勾选框                 |
+| width       | Number                |                      |                                  |
+| title       | String                |                      | 行标题                           |
+| key         | String\|Number        |                      | 属性索引，可使用.                |
+| adjustable  | Boolean               |                      | 可调整列宽                       |
+| filterable  | Boolean               |                      | 加入搜索，默认False              |
+| sortable    | Boolean               |                      | 是否可以搜索                     |
+| sortFn      | function(a,b): number |                      | 自定义排序比较函数，可以不指定   |
+| scopedSlots | String                |                      | 自定义插槽                       |
+| align       | String                | left\|center\|right  | 对齐方式                         |
+| ellipsis    | Boolean               |                      | 是否使用省略号                   |
+| _sortType   | String                | normal\|asc\|desc    | 默认排序方式                     |
+| customAttrs | Function              |                      | 自定义单元格属性，用于合并单元格 |
 
 
 
@@ -122,3 +127,44 @@ import 'x-data-grid/lib/xDataGrid.css'
     }
 }
 ```
+
+
+
+#### 单元格合并案例
+
+```js
+const renderAttrs = function(value,row,index,source){
+  // 如果重复就不画
+  if (index > 0 && source[index].pCode === source[index - 1].pCode) {
+    return {
+      rowspan: 0
+    }
+  }
+
+  let rowspan = 1
+  const pCode = source[index].pCode
+
+  let i = index + 1
+  while (i < source.length && source[i].pCode === pCode) {
+    i++
+    rowspan++
+  }
+
+  // 合并同类项
+  return {
+    rowspan: rowspan
+  }
+}
+```
+
+函数第一个参数是当前单元格数值、第二个参数是当前行，第三个参数是下标，第四个参数是数据列表
+
+最后返回行列合并的配置：
+
+```js
+{
+    rowspan: 1,
+    colspan: 1
+}
+```
+
