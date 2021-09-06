@@ -48,7 +48,7 @@ export default {
           key: 'name',
           type: 'text',
           adjustable: true,
-          width: 100,
+          width: 300,
           ellipsis: true,
           sortable: true,
           customAttrs: function (value, row, index, source) {
@@ -83,7 +83,6 @@ export default {
           title: '单价',
           adjustable: true,
           key: 'unitPrice.value',
-          filterable: true,
           width: 800
         },
         {

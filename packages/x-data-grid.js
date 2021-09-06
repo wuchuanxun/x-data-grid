@@ -152,6 +152,7 @@ export default {
       sortKey: null,
       searchSchema: '',
 
+      sourceLocal: [],
       checkedKeys: []
     }
   },
@@ -411,7 +412,11 @@ export default {
           }
 
           if (cell.type === 'number') {
-            tdContent = numeral(tdContent).format(cell.format)
+            if (tdContent === undefined || tdContent === null) {
+              tdContent = ''
+            } else {
+              tdContent = numeral(tdContent).format(cell.format)
+            }
           } else if (cell.type === 'text' && tdContent instanceof Object) {
             tdContent = JSON.stringify(tdContent)
           }
@@ -472,6 +477,7 @@ export default {
           if (!editIt) {
             tds.push(createElement('td', {
               attrs: concatAttrs,
+              class: cell.class,
               style: {
                 wordBreak: 'break-all',
                 textAlign: cell.align || 'left',
@@ -481,6 +487,7 @@ export default {
           } else if (that.editCell[0] === row._index && that.editCell[1] === cell.key) {
             tds.push(createElement('td', {
               attrs: concatAttrs,
+              class: cell.class,
               style: {
                 padding: 0
               }
@@ -519,6 +526,7 @@ export default {
           } else {
             tds.push(createElement('td', {
               attrs: concatAttrs,
+              class: cell.class,
               style: {
                 wordBreak: 'break-all',
                 textAlign: cell.align || 'left',
@@ -713,7 +721,18 @@ export default {
       search.push(createElement('span', this.$slots._search))
     } else if (searchOptions.length > 0) {
       if (searchOptions.length === 1) {
-        search.push(searchOptions[0].children[0].text + ' /')
+        search.push(createElement('span', {
+          style: {
+            backgroundColor: '#FAFAFA',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px 0 0 4px',
+            margin: '0',
+            padding: '0px 8px',
+            appearance: 'none',
+            height: '22px !important',
+            boxSizing: 'content-box'
+          }
+        }, searchOptions[0].children[0].text))
         that.options.keys = keys[0]
       } else {
         search.push(createElement('select', {
@@ -765,8 +784,8 @@ export default {
           border: '1px solid #d9d9d9',
           borderRadius: '0 4px 4px 0',
           margin: '0',
-          height: '24px',
-          lineHeight: '24px'
+          height: '20px !important',
+          boxSizing: 'content-box'
         },
         on: {
           'input': debounce(function (e) {
