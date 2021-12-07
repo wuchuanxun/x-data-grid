@@ -32,12 +32,17 @@ import 'x-data-grid/lib/xDataGrid.css'
 | hiddenFooter | Boolean      | 隐藏底部分页栏       |
 | noDataText   | String       | 没有数据显示的文本   |
 | overwriteSearch   | Boolean  | 用slot=_search替换搜索框 |
-| enableExpand | Boolean | 是否允许展开行 |
-| clickExpand | Boolean | 单机展开行，建议不与editable混用 |
-| hiddenInfo | Boolean | 隐藏左下角统计信息 |
+| hiddenInfo | Boolean | 是否隐藏表格左下角统计信息 |
+| enableExpand | Boolean | 是否允许展开行，默认false |
+| clickExpand | Boolean | 单机展开行，建议不与editable混用, 默认false |
 | loading | Boolean | 是否加载中，显示加载动画 |
 | enableActiveRow | Boolean | 是否允许高亮行 |
 | zebra | Boolean | 是否启用斑马条纹 |
+| groupKey | Function | 输入行数据，放回group的名称 |
+| showGroupQty | Boolean | 展示group成员数目，分组等级低于分页 |
+| checkedKeys | Array | 用sync双向绑定选择的行 |
+| expandedKeys | Array | 用sync双向绑定展开的行 |
+| rowStyle | Object \| Function | 返回行的class定义，用于行自定义样式 |
 
 
 
@@ -53,7 +58,7 @@ import 'x-data-grid/lib/xDataGrid.css'
 | filterable  | Boolean               |                      | 加入搜索，默认False              |
 | sortable    | Boolean               |                      | 是否可以搜索                     |
 | sortFn      | function(a,b): number |                      | 自定义排序比较函数，可以不指定   |
-| scopedSlots | String                |                      | 自定义插槽                       |
+| slot        | String                |                      | 自定义插槽                       |
 | align       | String                | left\|center\|right  | 对齐方式                         |
 | ellipsis    | Boolean               |                      | 是否使用省略号                   |
 | _sortType   | String                | normal\|asc\|desc    | 默认排序方式                     |

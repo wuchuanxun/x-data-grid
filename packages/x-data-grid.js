@@ -121,6 +121,26 @@ export default {
     zebra: {
       type: Boolean,
       default: true
+    },
+    groupKey: {
+      type: Function,
+      default: undefined
+    },
+    showGroupQty: {
+      type: Boolean,
+      default: false
+    },
+    checkedKeys: {
+      type: Array,
+      default: () => []
+    },
+    expandedKeys: {
+      type: Array,
+      default: () => []
+    },
+    rowStyle: {
+      type: Object || Function,
+      default: () => {}
     }
   },
 
@@ -152,14 +172,26 @@ export default {
       sortKey: null,
       searchSchema: '',
 
-      sourceLocal: [],
-      checkedKeys: []
+      // 内部转存对象
+      _source: [],
+      _checkedKeys: [],
+      _expandedKeys: [],
+      _deActiveGroup: []
     }
   },
 
-  computed: {
-    fuse () {
-      return new Fuse(this.sourceLocal, this.options)
+  directives: {
+    tooltip: {
+      bind: function (el) {
+        el.addEventListener('mouseenter', function (evt) {
+          const targetEl = evt.target
+          if (targetEl.offsetWidth < targetEl.scrollWidth) {
+            targetEl.setAttribute('title', evt.target.textContent)
+          } else {
+            targetEl.hasAttribute('title') && targetEl.removeAttribute('title')
+          }
+        })
+      }
     }
   },
 
@@ -180,8 +212,11 @@ export default {
       }
     })
     fixR = fixRAll
+    let renderData = this.filterSource
 
+    // 创建标题
     this.columns.forEach(function (col, index) {
+      // 创建列
       if (col.type === '_check') {
         cols.push(createElement('col', {
           style: {
@@ -204,6 +239,7 @@ export default {
         cols.push(createElement('col'))
       }
 
+      // 确定标题
       let titleContent = [col.title]
       if (col.type === '_check') {
         titleContent = [
@@ -222,9 +258,8 @@ export default {
                     rKeys.push(rr[that.rowKey])
                   }
                 }
-                that.checkedKeys = rKeys
-                // 强制刷新
-                that.filterSource.push()
+                that.$data._checkedKeys = rKeys
+                that.$emit('update:checkedKeys', rKeys)
                 that.$emit('selectChanged', rKeys)
               }
             }
@@ -240,6 +275,7 @@ export default {
         }
       }
 
+      // 标题点击事件
       const event = {}
       if (col.sortable) {
         event.click = function (e) {
@@ -265,17 +301,17 @@ export default {
           if (that.sortType !== 'normal') {
             const dir = that.sortType === 'asc' ? 1 : -1
             that.filterSource.sort((a, b) => {
-              return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+              return defaultSortFn(a._group, b._group) * 10 + that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
             })
           } else {
             that.filterSource.sort((a, b) => {
-              return defaultSortFn(a._index, b._index)
+              return defaultSortFn(a._group, b._group) * 10 + defaultSortFn(a._index, b._index)
             })
           }
-          that.columns.push()
         }
       }
 
+      // 固定列
       if (col.fixed === 'left') {
         ths.push(createElement('th', {
           style: {
@@ -285,6 +321,9 @@ export default {
             textAlign: col.align || 'left',
             zIndex: 10
           },
+          directives: [
+            { name: 'tooltip' }
+          ],
           on: event
         }, titleContent))
         fixL += col.width
@@ -299,6 +338,9 @@ export default {
             textAlign: col.align || 'left',
             zIndex: 10
           },
+          directives: [
+            { name: 'tooltip' }
+          ],
           on: event
         }, titleContent))
       } else if (col.adjustable) {
@@ -316,7 +358,10 @@ export default {
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
-            }
+            },
+            directives: [
+              { name: 'tooltip' }
+            ]
           }, titleContent),
           createElement('div', {
             style: {
@@ -356,12 +401,13 @@ export default {
             userSelect: 'none',
             textAlign: col.align || 'left'
           },
+          directives: [
+            { name: 'tooltip' }
+          ],
           on: event
         }, titleContent))
       }
     })
-
-    let renderData = this.filterSource
 
     if (this.loading) {
       // 渲染替代文本
@@ -384,10 +430,58 @@ export default {
     } else {
       // 分页
       if (this.pageSize > 0) {
-        renderData = renderData.slice(this.pageSize * this.pageIndex, this.pageSize * this.pageIndex + this.pageSize)
+        renderData = this.filterSource.slice(this.pageSize * this.pageIndex, this.pageSize * this.pageIndex + this.pageSize)
       }
 
+      let preGroup
       renderData.forEach(function (row, rindex) { // 遍历行
+        if (row._group !== preGroup) {
+          // 渲染一个组
+          const active = !that.$data._deActiveGroup.includes(row._group)
+          let groupName = row._group
+          if (that.showGroupQty) {
+            const qty = renderData.filter(p => p._group === groupName).length
+            groupName += ` [${qty}项]`
+          }
+          trs.push(createElement('tr', [
+            createElement('td', {
+              attrs: {
+                colspan: that.columns.length
+              },
+              style: {
+                fontWeight: 'bold'
+              },
+              on: {
+                click: function (e) {
+                  if (active) {
+                    that.$data._deActiveGroup.push(row._group)
+                  } else {
+                    // 移除当前
+                    const idx = that.$data._deActiveGroup.indexOf(row._group)
+                    that.$data._deActiveGroup.splice(idx, 1)
+                  }
+                }
+              }
+            }, [
+              createElement('span', {
+                class: {
+                  'addBtn': !active,
+                  'subBtn': active
+                }
+              }),
+              createElement('li', {
+                class: {
+                  'group-title': true
+                }
+              }, groupName)])]))
+          preGroup = row._group
+
+          if (!active) return
+        } else {
+          const active = !that.$data._deActiveGroup.includes(row._group)
+          if (!active) return
+        }
+
         var tds = []// <td> 标签数组
 
         fixL = 0
@@ -399,6 +493,10 @@ export default {
             whiteSpace: 'nowrap',
             overflow: 'hidden'
           } : {}
+
+          const tdDirectives = cell.ellipsis ? { directives: [
+            { name: 'tooltip' }
+          ] } : {}
 
           let tdContent = objectTakeByKey(row, cell.key)
           const originalValue = tdContent
@@ -441,7 +539,8 @@ export default {
                         rKeys.push(rr[that.rowKey])
                       }
                     }
-                    that.checkedKeys = rKeys
+                    that.$data._checkedKeys = rKeys
+                    that.$emit('update:checkedKeys', rKeys)
                     that.$emit('selectChanged', rKeys)
                   },
                   click (e) {
@@ -453,6 +552,9 @@ export default {
           } else if (cell.scopedSlots) {
             editIt = false
             tdContent = that.$scopedSlots[cell.scopedSlots](originalValue, row, row._index)
+          } else if (cell.slot) {
+            editIt = false
+            tdContent = that.$scopedSlots[cell.slot](originalValue, row, row._index)
           }
 
           if (cell.fixed === 'left') {
@@ -482,7 +584,8 @@ export default {
                 wordBreak: 'break-all',
                 textAlign: cell.align || 'left',
                 ...styleText
-              }
+              },
+              ...tdDirectives
             }, tdContent))
           } else if (that.editCell[0] === row._index && that.editCell[1] === cell.key) {
             tds.push(createElement('td', {
@@ -512,13 +615,16 @@ export default {
                 'keyup': function (e) {
                   if (e.key === 'Enter' || e.keyCode === 13) {
                     if (that.editCell[1].includes('.')) {
-                      objectSetByKey(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                      objectSetByKey(that.$data._source[that.editCell[0]], that.editCell[1], e.target.value)
                     } else {
-                      that.$set(that.sourceLocal[that.editCell[0]], that.editCell[1], e.target.value)
+                      that.$set(that.$data._source[that.editCell[0]], that.editCell[1], e.target.value)
                     }
-
+                    that.$emit('editCell', {
+                      index: that.editCell[0],
+                      key: that.editCell[1],
+                      value: e.target.value
+                    })
                     that.$set(that, 'editCell', [-1, -1])
-                    that.$emit('editCell', row)
                   }
                 }
               }
@@ -545,21 +651,34 @@ export default {
                     that.$refs.editCell.selectionStart = that.$refs.editCell.selectionEnd = objectTakeByKey(row, cell.key).toString().length
                   }, 200)
                 }
-              }
+              },
+              ...tdDirectives
             }, tdContent))
           }
         })
+
+        let rowStyle = that.rowStyle || {}
+        if (typeof rowStyle === 'function') {
+          rowStyle = rowStyle(row)
+        }
         trs.push(createElement('tr', {
           class: {
             'zebra-pattern': rindex % 2 === 1 && that.zebra,
-            'active': row[that.rowKey] === that.activeRowKey && that.enableActiveRow
+            'active': row[that.rowKey] === that.activeRowKey && that.enableActiveRow,
+            ...rowStyle
           },
           on: {
             click: function () {
               if (that.clickExpand) {
                 that.$set(row, '_expanded', !row._expanded)
-                // 强制刷新
-                that.filterSource.push()
+                const rKeys = []
+                for (const rr of renderData) {
+                  if (rr._expanded) {
+                    rKeys.push(rr[that.rowKey])
+                  }
+                }
+                that.$data._expandedKeys = rKeys
+                that.$emit('update:expandedKeys', rKeys)
               }
 
               if (that.activeRowKey === row[that.rowKey]) return
@@ -694,13 +813,13 @@ export default {
 
     let infoDom = null
     if (!this.hiddenInfo) {
-      let t = `共${this.sourceLocal.length}条数据`
+      let t = `共${this.$data._source.length}条数据`
 
-      if (searchOptions.length > 0 && this.filterSource.length !== this.sourceLocal.length) {
+      if (searchOptions.length > 0 && this.filterSource.length !== this.$data._source.length) {
         t += `，筛选结果${this.filterSource.length}条`
       }
-      if (this.checkedKeys.length > 0) {
-        t += `，已选${this.checkedKeys.length}条`
+      if (this.$data._checkedKeys.length > 0) {
+        t += `，已选${this.$data._checkedKeys.length}条`
       }
       infoDom = createElement('span', t)
     }
@@ -733,7 +852,7 @@ export default {
             boxSizing: 'content-box'
           }
         }, searchOptions[0].children[0].text))
-        that.options.keys = keys[0]
+        that.options.keys = [keys[0]]
       } else {
         search.push(createElement('select', {
           style: {
@@ -796,12 +915,13 @@ export default {
 
             that.searchSchema = text
             if (text.length === 0) {
-              that.filterSource = that.sourceLocal
+              that.filterSource = that.$data._source
             } else {
-              that.filterSource = that.fuse.search(that.options.prefix + text).map(p => p.item)
+              const fuse = new Fuse(that.$data._source, that.options)
+              that.filterSource = fuse.search(that.options.prefix + text).map(p => p.item)
             }
             that.pageIndex = 0
-          }, 300),
+          }, 500),
 
           'keyup': function (e) {
             if (e.key === 'Enter' || e.keyCode === 13) {
@@ -811,9 +931,10 @@ export default {
               const text = e.target.value.trim()
               that.searchSchema = text
               if (text.length === 0) {
-                that.filterSource = that.sourceLocal
+                that.filterSource = that.$data._source
               } else {
-                that.filterSource = that.fuse.search(that.options.prefix + text).map(p => p.item)
+                const fuse = new Fuse(that.$data._source, that.options)
+                that.filterSource = fuse.search(that.options.prefix + text).map(p => p.item)
               }
               that.pageIndex = 0
             }
@@ -869,23 +990,30 @@ export default {
 
   watch: {
     source () {
-      const checkedKeys = this.checkedKeys
       const rowKey = this.rowKey
-      this.sourceLocal = this.source.map(function (row, index) {
-        // 新建字段，标识当前行在数组中的索引
-        row._index = index
-        row._expanded = row._expanded || false
-        if (row._checked === undefined) {
-          row._checked = checkedKeys.includes(row[rowKey])
+      const checkedKeys = this.$data._checkedKeys
+      const expandedKeys = this.$data._expandedKeys
+      const groupKey = this.groupKey
+
+      this.$data._source = this.source.map(function (row, index) {
+        const nRow = { ...row }
+        nRow._index = index
+        nRow._expanded = expandedKeys.includes(nRow[rowKey])
+        nRow._checked = checkedKeys.includes(nRow[rowKey])
+
+        if (groupKey) {
+          nRow._group = groupKey(row)
         }
-        return row
+        return nRow
       })
-      this.checkedKeys = this.sourceLocal.filter(p => p._checked).map(p => p[rowKey])
+      // 可能有删除，重新获取一遍
+      this.$data._checkedKeys = this.$data._source.filter(p => p._checked).map(p => p[rowKey])
 
       if (this.searchSchema.trim() === '') {
-        this.filterSource = this.sourceLocal
+        this.filterSource = this.$data._source
       } else {
-        this.filterSource = this.fuse.search(this.options.prefix + this.searchSchema).map(p => p.item)
+        const fuse = new Fuse(this.$data._source, this.options)
+        this.filterSource = fuse.search(this.options.prefix + this.searchSchema).map(p => p.item)
       }
 
       // 重新排序
@@ -893,9 +1021,21 @@ export default {
         const dir = this.sortType === 'asc' ? 1 : -1
         const that = this
         this.filterSource.sort((a, b) => {
-          return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+          return defaultSortFn(a._group, b._group) * 10 + that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+        })
+      } else {
+        this.filterSource.sort((a, b) => {
+          return defaultSortFn(a._group, b._group)
         })
       }
+    },
+
+    checkedKeys () {
+      this.$data._checkedKeys = this.checkedKeys
+    },
+
+    expandedKeys () {
+      this.$data._expandedKeys = this.expandedKeys
     }
   },
 
@@ -918,21 +1058,32 @@ export default {
       return col
     })
 
-    this.sourceLocal = this.source.map(function (row, index) {
-      // 新建字段，标识当前行在数组中的索引
-      row._index = index
-      row._expanded = row._expanded || false
-      row._checked = row._checked || false
-      return row
+    const rowKey = this.rowKey
+    const checkedKeys = this.$data._checkedKeys
+    const expandedKeys = this.$data._expandedKeys
+    const groupKey = this.groupKey
+    this.$data._source = this.source.map(function (row, index) {
+      const nRow = { ...row }
+      nRow._index = index
+      nRow._expanded = expandedKeys.includes(nRow[rowKey])
+      nRow._checked = checkedKeys.includes(nRow[rowKey])
+      if (groupKey) {
+        nRow._group = groupKey(row)
+      }
+      return nRow
     })
 
-    this.filterSource = this.sourceLocal
+    this.filterSource = this.$data._source
 
     // 默认排序
     if (this.sortType !== 'normal') {
       const dir = this.sortType === 'asc' ? 1 : -1
       this.filterSource.sort((a, b) => {
-        return that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+        return defaultSortFn(a._group, b._group) * 10 + that.sortFn(a[that.sortKey], b[that.sortKey]) * dir
+      })
+    } else {
+      this.filterSource.sort((a, b) => {
+        return defaultSortFn(a._group, b._group)
       })
     }
 
@@ -958,7 +1109,7 @@ export default {
   methods: {
     filterData (handler) {
       if (typeof handler !== 'function') return
-      this.filterSource = handler(this.sourceLocal)
+      this.filterSource = handler(this.$data._source)
     }
   }
 }

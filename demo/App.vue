@@ -8,7 +8,12 @@
       :columns="columns"
       :page-size="50"
       :page-index="0"
+      :group-key="groupFunc"
+      show-group-qty
+      click-expand
+      :checked-keys.sync="checkedKeys"
       @selectChanged="showId"
+      @editCell="editCell"
     >
       <template slot="_action">
         导出
@@ -48,26 +53,8 @@ export default {
           key: 'name',
           type: 'text',
           adjustable: true,
-          width: 300,
           ellipsis: true,
-          sortable: true,
-          customAttrs: function (value, row, index, source) {
-            if (index > 0 && source[index].name === source[index - 1].name) {
-              return {
-                rowspan: 0
-              }
-            }
-            let rowspan = 1
-            const rname = source[index].name
-            let ri = index + 1
-            while (ri < source.length && source[ri].name === rname) {
-              ri++
-              rowspan++
-            }
-            return {
-              rowspan: rowspan
-            }
-          }
+          sortable: true
         },
         {
           title: '数量',
@@ -82,8 +69,7 @@ export default {
         {
           title: '单价',
           adjustable: true,
-          key: 'unitPrice.value',
-          width: 800
+          key: 'unitPrice.value'
         },
         {
           title: '操作',
@@ -92,10 +78,12 @@ export default {
           adjustable: true,
           scopedSlots: 'operation'
         }
+
       ],
       data: [
 
-      ]
+      ],
+      checkedKeys: []
     }
   },
   created () {
@@ -108,37 +96,40 @@ export default {
         id: index * 3
       },
       {
-        name: ['苏泊力锅', 'dadqw'],
+        name: 'wdee',
         num: 3 * index,
         unitPrice: { value: 2132139128381278.0 },
         id: index * 3 + 1
       },
       {
-        name: { name: '乐薯片' },
+        name: 'asdas',
         num: 4 * index,
         unitPrice: { value: 66.0 },
         id: index * 3 + 2
       }])
     }
+
     this.data = dataCache
     const that = this
-    setTimeout(() => {
-      that.data[0]._checked = true
-      that.data.push()
-    }, 5000)
+    setInterval(() => {
+      that.data = [...dataCache]
+    }, 6000)
   },
   methods: {
+    groupFunc (record) {
+      return record.name
+    },
+
     showId (checkedKeys) {
 
     },
+
     deleteRow (row) {
 
     },
 
-    slice10 () {
-      this.$refs.grid.filterData((source) => {
-        return source.slice(0, 10)
-      })
+    editCell (record) {
+      this.$set(this.data[record.index], record.key, record.value)
     }
   }
 }
@@ -157,6 +148,10 @@ export default {
 .x-data-grid {
     th,td{
       padding: 6px 10px !important;
+    }
+
+    .hello>td{
+      background-color: red !important;
     }
 }
 </style>
